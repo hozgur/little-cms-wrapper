@@ -10,11 +10,15 @@
     "type": "git",
     "url": "git+https://github.com/hozgur/little-cms-wrapper.git"
   },
+  "gypfile": true,
   "keywords": [],
   "author": "hozgur",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/hozgur/little-cms-wrapper/issues"
   },
-  "homepage": "https://github.com/hozgur/little-cms-wrapper#readme"
+  "homepage": "https://github.com/hozgur/little-cms-wrapper#readme",
+  "dependencies": {
+    "node-addon-api": "^4.2.0"
+  }
 }
