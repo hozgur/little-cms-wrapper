@@ -19,7 +19,7 @@ struct S_global {
     if(Lab2sRGBDouble) cmsDeleteTransform(Lab2sRGBDouble);
     if(sRGB2LabEncoded) cmsDeleteTransform(sRGB2LabEncoded);
     if(LabEncoded2sRGB) cmsDeleteTransform(LabEncoded2sRGB);
-    log("S_global destructor");
+    //log("S_global destructor"); yeah it's running.
   }
   const cmsHPROFILE sRGBProfile = cmsCreate_sRGBProfile();
   const cmsHPROFILE hLabProfile = cmsCreateLab4Profile(NULL);
@@ -43,10 +43,11 @@ Value sRGB_to_Lab(const CallbackInfo& info) {
   data[1] = info[1].As<Number>().Int32Value();
   data[2] = info[2].As<Number>().Int32Value();
 
-  Buffer<double> outBuf = Buffer<double>::New(env, 3);
-  double* out = outBuf.Data();
-  cmsDoTransform(global.sRGB2LabDouble, data, out, 1);
-  return outBuf;
+  Float64Array result = Float64Array::New(env,3);
+  //Buffer<double> result = Buffer<double>::New(env,3);
+  auto resultData = result.Data();  
+  cmsDoTransform(global.sRGB2LabDouble, data, resultData, 1);  
+  return result;  
 }
 
 
