@@ -4,7 +4,9 @@
   "description": "Little CMS Wrapper for Nodejs",
   "main": "index.js",
   "scripts": {
-    "test": "node test.js"
+    "test": "node test.js",
+    "build": "node-gyp build",
+    "rebuild": "node-gyp rebuild"
   },
   "repository": {
     "type": "git",
