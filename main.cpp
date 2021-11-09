@@ -1,6 +1,7 @@
 #include <napi.h>
 #include "src/lcms2.h"
 #include <stdio.h>
+#include <iostream>
 using namespace Napi;
 
 void log(const char* msg) {
@@ -53,6 +54,20 @@ Value sRGB_to_Lab(const CallbackInfo& info) {
   return result;  
 }
 
+Value sRGB_to_Lab_encoded(const CallbackInfo& info) {
+  auto env = info.Env();
+  auto data = info[0].As<Buffer<uint8_t>>().Data();
+  auto dataLength = info[0].As<Buffer<uint8_t>>().Length();
+  if ((dataLength % 3) != 0) {
+    return Number::New(env, -1);
+  }
+  auto length = dataLength / 3;
+  Uint16Array result = Uint16Array::New(env,length * 3);
+  auto resultData = result.Data();  
+  cmsDoTransform(global.sRGB2LabEncoded, data, resultData, length);  
+  return result;  
+}
+
 Value Lab_to_sRGB(const CallbackInfo& info) {
   auto env = info.Env();
   Buffer<double> buffer = Buffer<double>::New(env,3);
@@ -65,6 +80,20 @@ Value Lab_to_sRGB(const CallbackInfo& info) {
   auto resultData = result.Data();  
   cmsDoTransform(global.LabDouble2sRGB, data, resultData, 1);
   return result;  
+}
+
+Value Lab_encoded_to_sRGB(const CallbackInfo& info) {
+  auto env = info.Env();
+  auto data = info[0].As<Buffer<uint16_t>>().Data();
+  auto dataLength = info[0].As<Buffer<uint16_t>>().Length();
+  if ((dataLength % 3) != 0) {
+    return Number::New(env, -1);
+  }
+  auto length = dataLength / 3;
+  Buffer<uint8_t> result = Buffer<uint8_t>::New(env,length * 3);
+  auto resultData = result.Data();
+  cmsDoTransform(global.LabEncoded2sRGB, data, resultData, length);
+  return result;
 }
 
 Value Lab_to_Lch(const CallbackInfo& info) {
@@ -95,6 +124,53 @@ Value Lch_to_Lab(const CallbackInfo& info) {
   return result;  
 }
 
+Value Lab_to_Lab_encoded(const CallbackInfo& info) {
+  auto env = info.Env();
+  auto dataBuffer = info[0].As<Buffer<double>>();
+  int dataLength = dataBuffer.Length();
+  std::cout << "dataLength: " << dataLength << std::endl;  
+  double *data = dataBuffer.Data();
+  if ((dataLength % 3) != 0) {
+    return Number::New(env, -1);
+  }
+  auto length = dataLength / 3;
+  
+  Uint16Array result = Uint16Array::New(env,length * 3);
+  auto resultData = result.Data();
+  for(int i = 0;i<length;i++) {
+    cmsUInt16Number Lab_encoded[3];
+    float lab[3] = {(float)data[i*3],(float)data[i*3+1],(float)data[i*3+2]};
+    cmsFloat2LabEncodedV2(Lab_encoded, (cmsCIELab*)lab);
+    resultData[i*3] = Lab_encoded[0];
+    resultData[i*3+1] = Lab_encoded[1];
+    resultData[i*3+2] = Lab_encoded[2];
+  }
+  return result; 
+}
+
+Value Lab_encoded_to_Lab(const CallbackInfo& info) {
+  auto env = info.Env();
+  auto dataBuffer = info[0].As<Buffer<uint16_t>>();
+  int dataLength = dataBuffer.Length();
+  std::cout << "dataLength: " << dataLength << std::endl;  
+  uint16_t *data = dataBuffer.Data();
+  if ((dataLength % 3) != 0) {
+    return Number::New(env, -1);
+  }
+  auto length = dataLength / 3;
+
+  Float64Array result = Float64Array::New(env,length * 3);
+  auto resultData = result.Data();
+  for(int i = 0;i<length;i++) {
+    uint16_t Lab_encoded[3] = {data[i*3],data[i*3+1],data[i*3+2]};
+    cmsCIELab lab;
+    cmsLabEncoded2Float(&lab, Lab_encoded);
+    resultData[i*3] = lab.L;
+    resultData[i*3+1] = lab.a;
+    resultData[i*3+2] = lab.b;
+  }
+  return result;
+}
 
 Object Init(Env env, Object exports) {
     exports.Set(String::New(env, "GetVersion"),
@@ -107,6 +183,14 @@ Object Init(Env env, Object exports) {
                 Function::New(env, Lab_to_Lch));
     exports.Set(String::New(env, "Lch_to_Lab"),
                 Function::New(env, Lch_to_Lab));
+    exports.Set(String::New(env, "sRGB_to_Lab_encoded"),
+                Function::New(env, sRGB_to_Lab_encoded));
+    exports.Set(String::New(env, "Lab_encoded_to_sRGB"),
+                Function::New(env, Lab_encoded_to_sRGB));
+    exports.Set(String::New(env, "Lab_to_Lab_encoded"),
+                Function::New(env, Lab_to_Lab_encoded));
+    exports.Set(String::New(env, "Lab_encoded_to_Lab"),
+                Function::New(env, Lab_encoded_to_Lab));
   return exports;
 }
 

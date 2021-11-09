@@ -37,10 +37,16 @@ function Lch_to_Lab(L, C, h) {
     };
 }
 
+
+
 module.exports = {
     getVersion: cms.GetVersion,
     sRGB_to_Lab: sRGB_to_Lab,
     Lab_to_sRGB: Lab_to_sRGB,
     Lab_to_Lch: Lab_to_Lch,
-    Lch_to_Lab: Lch_to_Lab
+    Lch_to_Lab: Lch_to_Lab,
+    sRGB_to_Lab_encoded: cms.sRGB_to_Lab_encoded,
+    Lab_encoded_to_sRGB: cms.Lab_encoded_to_sRGB,
+    Lab_to_Lab_encoded: cms.Lab_to_Lab_encoded,
+    Lab_encoded_to_Lab: cms.Lab_encoded_to_Lab,
 };
