@@ -17,19 +17,29 @@ struct S_global {
     if(sRGBProfile) cmsCloseProfile(sRGBProfile);
     if(hLabProfile) cmsCloseProfile(hLabProfile);    
     if(sRGB2LabDouble) cmsDeleteTransform(sRGB2LabDouble);
+    if(sRGBA2LabDouble) cmsDeleteTransform(sRGB2LabDouble);
     if(LabDouble2sRGB) cmsDeleteTransform(LabDouble2sRGB);
+    if(LabDouble2sRGBA) cmsDeleteTransform(LabDouble2sRGBA);
     if(sRGB2LabEncoded) cmsDeleteTransform(sRGB2LabEncoded);
+    if(sRGBA2LabEncoded) cmsDeleteTransform(sRGB2LabEncoded);
     if(LabEncoded2sRGB) cmsDeleteTransform(LabEncoded2sRGB);
+    if(LabEncoded2sRGBA) cmsDeleteTransform(LabEncoded2sRGBA);
     //log("S_global destructor"); yeah it's running.
   }
   const cmsHPROFILE sRGBProfile = cmsCreate_sRGBProfile();
   const cmsHPROFILE hLabProfile = cmsCreateLab4Profile(NULL);
 
-  const cmsHTRANSFORM sRGB2LabDouble = cmsCreateTransform(sRGBProfile, TYPE_RGBA_8, hLabProfile, TYPE_Lab_DBL, INTENT_RELATIVE_COLORIMETRIC, 0);
-  const cmsHTRANSFORM sRGB2LabEncoded = cmsCreateTransform(sRGBProfile, TYPE_RGBA_8, hLabProfile, TYPE_Lab_16, INTENT_RELATIVE_COLORIMETRIC, 0);
+  const cmsHTRANSFORM sRGB2LabDouble = cmsCreateTransform(sRGBProfile, TYPE_RGB_8, hLabProfile, TYPE_Lab_DBL, INTENT_RELATIVE_COLORIMETRIC, 0);
+  const cmsHTRANSFORM sRGB2LabEncoded = cmsCreateTransform(sRGBProfile, TYPE_RGB_8, hLabProfile, TYPE_Lab_16, INTENT_RELATIVE_COLORIMETRIC, 0);
 
-  const cmsHTRANSFORM LabDouble2sRGB = cmsCreateTransform(hLabProfile, TYPE_Lab_DBL, sRGBProfile, TYPE_RGBA_8, INTENT_RELATIVE_COLORIMETRIC, 0);
-  const cmsHTRANSFORM LabEncoded2sRGB = cmsCreateTransform(hLabProfile, TYPE_Lab_16, sRGBProfile, TYPE_RGBA_8, INTENT_RELATIVE_COLORIMETRIC, 0);
+  const cmsHTRANSFORM sRGBA2LabDouble = cmsCreateTransform(sRGBProfile, TYPE_RGBA_8, hLabProfile, TYPE_Lab_DBL, INTENT_RELATIVE_COLORIMETRIC, 0);
+  const cmsHTRANSFORM sRGBA2LabEncoded = cmsCreateTransform(sRGBProfile, TYPE_RGBA_8, hLabProfile, TYPE_Lab_16, INTENT_RELATIVE_COLORIMETRIC, 0);
+
+  const cmsHTRANSFORM LabDouble2sRGB = cmsCreateTransform(hLabProfile, TYPE_Lab_DBL, sRGBProfile, TYPE_RGB_8, INTENT_RELATIVE_COLORIMETRIC, 0);
+  const cmsHTRANSFORM LabEncoded2sRGB = cmsCreateTransform(hLabProfile, TYPE_Lab_16, sRGBProfile, TYPE_RGB_8, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_NOOPTIMIZE | cmsFLAGS_HIGHRESPRECALC);
+
+  const cmsHTRANSFORM LabDouble2sRGBA = cmsCreateTransform(hLabProfile, TYPE_Lab_DBL, sRGBProfile, TYPE_RGBA_8, INTENT_RELATIVE_COLORIMETRIC, 0);
+  const cmsHTRANSFORM LabEncoded2sRGBA = cmsCreateTransform(hLabProfile, TYPE_Lab_16, sRGBProfile, TYPE_RGBA_8, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_NOOPTIMIZE | cmsFLAGS_HIGHRESPRECALC);
 };
 
 
@@ -128,19 +138,18 @@ Value Lab_to_Lab_encoded(const CallbackInfo& info) {
   auto env = info.Env();
   auto dataBuffer = info[0].As<Buffer<double>>();
   int dataLength = dataBuffer.Length();
-  std::cout << "dataLength: " << dataLength << std::endl;  
   double *data = dataBuffer.Data();
   if ((dataLength % 3) != 0) {
     return Number::New(env, -1);
   }
   auto length = dataLength / 3;
-  
+  std::cout << "length: " << length << std::endl;
+  std::cout << data[0] << " " << data[1] << " " << data[2] << std::endl;
   Uint16Array result = Uint16Array::New(env,length * 3);
   auto resultData = result.Data();
   for(int i = 0;i<length;i++) {
     cmsUInt16Number Lab_encoded[3];
-    float lab[3] = {(float)data[i*3],(float)data[i*3+1],(float)data[i*3+2]};
-    cmsFloat2LabEncodedV2(Lab_encoded, (cmsCIELab*)lab);
+    cmsFloat2LabEncoded(Lab_encoded, (cmsCIELab*) &data[i*3]);
     resultData[i*3] = Lab_encoded[0];
     resultData[i*3+1] = Lab_encoded[1];
     resultData[i*3+2] = Lab_encoded[2];
@@ -163,11 +172,7 @@ Value Lab_encoded_to_Lab(const CallbackInfo& info) {
   auto resultData = result.Data();
   for(int i = 0;i<length;i++) {
     uint16_t Lab_encoded[3] = {data[i*3],data[i*3+1],data[i*3+2]};
-    cmsCIELab lab;
-    cmsLabEncoded2Float(&lab, Lab_encoded);
-    resultData[i*3] = lab.L;
-    resultData[i*3+1] = lab.a;
-    resultData[i*3+2] = lab.b;
+    cmsLabEncoded2Float((cmsCIELab*)&resultData[i*3], Lab_encoded);    
   }
   return result;
 }
