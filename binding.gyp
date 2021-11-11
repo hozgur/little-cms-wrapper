@@ -66,6 +66,7 @@
       },
       'msvs_settings': {
         'VCCLCompilerTool': { 'ExceptionHandling': 1 },
+        'VCLinkerTool': { 'LinkTimeCodeGeneration': 0},
       }
     }
   ]
